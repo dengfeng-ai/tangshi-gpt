@@ -2,9 +2,9 @@ import argparse
 
 import torch
 
-from gpt import GPT
+from gpt import device, GPT
+from model import Poem
 from tokenizer import CharTokenizer
-from train import device
 
 
 def load_checkpoint(checkpoint_path: str) -> tuple[GPT, CharTokenizer]:
@@ -39,7 +39,7 @@ def generate_poem(
     max_tokens: int = 500,
     temperature: float = 1.0,
     top_p: float = 1.0,
-) -> str:
+) -> Poem:
     """Generate a poem from the model given an optional title."""
     model.eval()
 
@@ -60,7 +60,19 @@ def generate_poem(
     )[0].tolist()
 
     text = tokenizer.decode(out)
-    return text
+
+    # Split title and content if <sep> is present, otherwise return the whole text as content
+    if "<sep>" in text:
+        title, content = text.split("<sep>", 1)
+    else:
+        title = ""
+        content = text
+
+    # Remove start and end tokens
+    title = title.replace("<sos>", "").replace("<eos>", "").strip()
+    content = content.replace("<sos>", "").replace("<eos>", "").strip()
+
+    return Poem(title=title, content=content)
 
 
 def main():
