@@ -72,6 +72,12 @@ python src/generate.py checkpoints/<checkpoint>.pt --title "春望"
 
 Omit `--title` to generate without a title prompt.
 
+Use `--temperature` to control the randomness of the output (default: `1.0`). Lower values produce more deterministic results, higher values increase diversity:
+
+```bash
+python src/generate.py checkpoints/<checkpoint>.pt --title "春望" --temperature 0.8
+```
+
 ## License
 
 MIT

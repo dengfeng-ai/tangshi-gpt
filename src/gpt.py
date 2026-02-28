@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 
-torch.manual_seed(42)
 device = (
     "cuda"
     if torch.cuda.is_available()
@@ -140,7 +139,7 @@ class GPT(nn.Module):
 
         return logits, loss
 
-    def generate(self, input, max_new_tokens):
+    def generate(self, input, max_new_tokens, temperature=1.0):
         # input is (B, T) tensors of integers
         # Copy the input to avoid modifying the original tensor
         token_ids = input.clone()
@@ -154,6 +153,9 @@ class GPT(nn.Module):
 
             # Get the logits for the last time step for all batches
             logits = logits[:, -1, :]  # (B, vocab_size)
+
+            # Apply temperature scaling
+            logits = logits / temperature
 
             # Apply softmax to get probabilities
             probs = F.softmax(logits, dim=-1)  # (B, vocab_size)
