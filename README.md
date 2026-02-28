@@ -78,6 +78,18 @@ Use `--temperature` to control the randomness of the output (default: `1.0`). Lo
 python src/generate.py checkpoints/<checkpoint>.pt --title "春望" --temperature 0.8
 ```
 
+Use `--top-p` for nucleus sampling (default: `1.0`). This restricts sampling to the smallest set of tokens whose cumulative probability exceeds the threshold, filtering out unlikely tokens:
+
+```bash
+python src/generate.py checkpoints/<checkpoint>.pt --title "春望" --top-p 0.9
+```
+
+Both options can be combined:
+
+```bash
+python src/generate.py checkpoints/<checkpoint>.pt --title "春望" --temperature 0.8 --top-p 0.9
+```
+
 ## License
 
 MIT
