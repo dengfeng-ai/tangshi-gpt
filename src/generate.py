@@ -37,6 +37,7 @@ def generate_poem(
     device: torch.device,
     title: str = "",
     max_tokens: int = 500,
+    temperature: float = 1.0,
 ) -> str:
     """Generate a poem from the model given an optional title."""
     model.eval()
@@ -48,7 +49,9 @@ def generate_poem(
 
     token_ids = torch.tensor([start_tokens], dtype=torch.long, device=device)
 
-    out = model.generate(token_ids, max_new_tokens=max_tokens)[0].tolist()
+    out = model.generate(token_ids, max_new_tokens=max_tokens, temperature=temperature)[
+        0
+    ].tolist()
 
     text = tokenizer.decode(out)
     return text
@@ -62,13 +65,25 @@ def main():
     parser.add_argument(
         "--title", type=str, default="", help="Optional poem title to condition on"
     )
+    parser.add_argument(
+        "--temperature",
+        type=float,
+        default=1.0,
+        help="Sampling temperature (lower = more deterministic, higher = more random)",
+    )
     args = parser.parse_args()
 
     # Load the model and tokenizer from the checkpoint
     model, tokenizer = load_checkpoint(args.checkpoint)
 
     # Generate the poem with title provided as context
-    poem = generate_poem(model, tokenizer, device, title=args.title)
+    poem = generate_poem(
+        model,
+        tokenizer,
+        device,
+        title=args.title,
+        temperature=args.temperature,
+    )
     print(poem)
 
 

@@ -6,7 +6,6 @@ from gpt import GPT
 from tokenizer import CharTokenizer
 from data_preparation import prepare_data
 
-torch.manual_seed(42)
 device = (
     "cuda"
     if torch.cuda.is_available()
