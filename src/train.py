@@ -2,8 +2,6 @@ from datetime import datetime
 import os
 import torch
 
-torch.manual_seed(42)
-
 from gpt import GPT
 from tokenizer import CharTokenizer
 from data_preparation import prepare_data
