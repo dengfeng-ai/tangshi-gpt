@@ -139,7 +139,7 @@ class GPT(nn.Module):
 
         return logits, loss
 
-    def generate(self, input, max_new_tokens, temperature=1.0, top_p=1.0):
+    def generate(self, input, max_new_tokens, temperature=1.0, top_p=1.0, eos_token=None):
         # input is (B, T) tensors of integers
         # Copy the input to avoid modifying the original tensor
         token_ids = input.clone()
@@ -178,5 +178,9 @@ class GPT(nn.Module):
 
             # Append sampled token id to the running sequence
             token_ids = torch.cat((token_ids, next_token_id), dim=1)  # (B, T+1)
+
+            # Stop generation if all sequences in the batch have produced <eos>
+            if eos_token is not None and (next_token_id == eos_token).all():
+                break
 
         return token_ids

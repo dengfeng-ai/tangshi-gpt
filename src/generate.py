@@ -50,8 +50,13 @@ def generate_poem(
 
     token_ids = torch.tensor([start_tokens], dtype=torch.long, device=device)
 
+    eos_token = tokenizer.char_to_id["<eos>"]
     out = model.generate(
-        token_ids, max_new_tokens=max_tokens, temperature=temperature, top_p=top_p
+        token_ids,
+        max_new_tokens=max_tokens,
+        temperature=temperature,
+        top_p=top_p,
+        eos_token=eos_token,
     )[0].tolist()
 
     text = tokenizer.decode(out)
