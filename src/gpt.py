@@ -139,7 +139,9 @@ class GPT(nn.Module):
 
         return logits, loss
 
-    def generate(self, input, max_new_tokens, temperature=1.0, top_p=1.0, eos_token=None):
+    def generate(
+        self, input, max_new_tokens, temperature=1.0, top_p=1.0, eos_token=None
+    ):
         # input is (B, T) tensors of integers
         # Copy the input to avoid modifying the original tensor
         token_ids = input.clone()
@@ -160,11 +162,15 @@ class GPT(nn.Module):
             # Apply top-p (nucleus) filtering
             if top_p < 1.0:
                 sorted_logits, sorted_indices = torch.sort(logits, descending=True)
-                cumulative_probs = torch.cumsum(F.softmax(sorted_logits, dim=-1), dim=-1)
+                cumulative_probs = torch.cumsum(
+                    F.softmax(sorted_logits, dim=-1), dim=-1
+                )
 
                 # Remove tokens with cumulative probability above the threshold
                 # Shift right so the first token above the threshold is kept
-                sorted_mask = cumulative_probs - F.softmax(sorted_logits, dim=-1) >= top_p
+                sorted_mask = (
+                    cumulative_probs - F.softmax(sorted_logits, dim=-1) >= top_p
+                )
                 sorted_logits[sorted_mask] = float("-inf")
 
                 # Scatter back to original ordering

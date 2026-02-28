@@ -2,15 +2,9 @@ from datetime import datetime
 import os
 import torch
 
-from gpt import GPT
+from gpt import device, GPT
 from tokenizer import CharTokenizer
 from data_preparation import prepare_data
-
-device = (
-    "cuda"
-    if torch.cuda.is_available()
-    else "mps" if torch.backends.mps.is_available() else "cpu"
-)
 
 # ============ Hyperparameters =============
 # data

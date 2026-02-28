@@ -59,17 +59,5 @@ class CharTokenizer:
 
     def decode(self, ids: list[int]) -> str:
         """Decode token ids into text"""
-        chars = []
-        for idx in ids:
-            ch = self.id_to_char.get(idx, "<unk>")
-            if ch in ("<pad>", "<unk>"):
-                continue
-            if ch == "<eos>":
-                break
-            if ch == "<sos>":
-                continue
-            if ch == "<sep>":
-                chars.append("\n")
-                continue
-            chars.append(ch)
+        chars = [self.id_to_char.get(idx, "<unk>") for idx in ids]
         return "".join(chars)
