@@ -38,6 +38,7 @@ def generate_poem(
     title: str = "",
     max_tokens: int = 500,
     temperature: float = 1.0,
+    top_p: float = 1.0,
 ) -> str:
     """Generate a poem from the model given an optional title."""
     model.eval()
@@ -49,9 +50,9 @@ def generate_poem(
 
     token_ids = torch.tensor([start_tokens], dtype=torch.long, device=device)
 
-    out = model.generate(token_ids, max_new_tokens=max_tokens, temperature=temperature)[
-        0
-    ].tolist()
+    out = model.generate(
+        token_ids, max_new_tokens=max_tokens, temperature=temperature, top_p=top_p
+    )[0].tolist()
 
     text = tokenizer.decode(out)
     return text
@@ -71,6 +72,12 @@ def main():
         default=1.0,
         help="Sampling temperature (lower = more deterministic, higher = more random)",
     )
+    parser.add_argument(
+        "--top-p",
+        type=float,
+        default=1.0,
+        help="Top-p (nucleus) sampling threshold (0.0-1.0, lower = less random)",
+    )
     args = parser.parse_args()
 
     # Load the model and tokenizer from the checkpoint
@@ -83,6 +90,7 @@ def main():
         device,
         title=args.title,
         temperature=args.temperature,
+        top_p=args.top_p,
     )
     print(poem)
 
