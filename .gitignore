@@ -5,3 +5,5 @@ __pycache__/
 checkpoints/*
 !checkpoints/checkpoint.pt
 .DS_Store
+.venv/
+.claude/
