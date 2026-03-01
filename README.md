@@ -101,6 +101,12 @@ A live demo of the poem generation can be found at [tangshi-gpt](http://tangshi-
 
 <img src="images/送别.png" alt="Demo Screenshot" width="500">
 
+## References
+
+- [Attention Is All You Need](https://arxiv.org/abs/1706.03762) — Vaswani et al., the original transformer paper
+- [nanochat](https://github.com/karpathy/nanochat) — Andrej Karpathy's nanochat
+- [Transformer Model Tutorial in PyTorch: From Theory to Code](https://www.datacamp.com/tutorial/building-a-transformer-with-py-torch) — DataCamp
+
 ## License
 
 MIT
