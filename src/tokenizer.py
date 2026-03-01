@@ -53,9 +53,24 @@ class CharTokenizer:
         print(f"  Characters: {self.vocab_size - len(SPECIAL_TOKENS)}")
 
     def encode(self, text: str) -> list[int]:
-        """Encode text into token ids"""
+        """Encode text into token ids with special token handling"""
         unk_id = self.char_to_id["<unk>"]
-        return [self.char_to_id.get(ch, unk_id) for ch in text]
+        tokens: list[int] = []
+
+        i = 0
+        while i < len(text):
+            if text[i] == "<":
+                end = text.find(">", i)
+                if end != -1:
+                    candidate = text[i : end + 1]
+                    if candidate in SPECIAL_TOKENS:
+                        tokens.append(self.char_to_id[candidate])
+                        i = end + 1
+                        continue
+            tokens.append(self.char_to_id.get(text[i], unk_id))
+            i += 1
+
+        return tokens
 
     def decode(self, ids: list[int]) -> str:
         """Decode token ids into text"""
