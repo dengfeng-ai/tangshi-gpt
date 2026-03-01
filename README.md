@@ -62,6 +62,11 @@ The training script will:
 3. Train the GPT model for 10,000 iterations
 4. Save a checkpoint to `checkpoints/`
 
+> **Note:** <br>
+> I trained for 10,000 iterations on a single GPU(Tesla T4) which took ~1.5 hours.
+>   - If you want to train, you can adjust the hyperparameters in `train.py` (e.g., `max_iters`, `batch_size`, `learning_rate`) to fit your resources and needs.
+>   - I shared the trained checkpoint in `checkpoints/checkpoint.pt` for you to generate poems without training.
+
 ### Generating Poems
 
 After training, generate poems from a saved checkpoint:
