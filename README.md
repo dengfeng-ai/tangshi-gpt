@@ -1,6 +1,6 @@
 # tangshi-gpt
 
-A character-level GPT model that generates Chinese poetry, trained on ~5,000 Tang dynasty (唐朝) poems.
+A character-level GPT model that generates Chinese poetry, trained on ~37,000 Tang dynasty (唐朝) poems.
 
 ## Overview
 
@@ -23,11 +23,11 @@ Tang dynasty poems (唐诗) sourced from the [chinese-poetry](https://github.com
 ## Project Structure
 
 ```
-├── data/                    # Tang dynasty poem JSON files
+├── data/                    # Pre-split train/val/test poem JSON files
 ├── checkpoints/             # Saved model checkpoints
 ├── src/
 │   ├── model.py             # Poem dataclass
-│   ├── data_preparation.py  # Data loading and train/val split
+│   ├── data_preparation.py  # Data loading from train/val/test splits
 │   ├── tokenizer.py         # Character-level tokenizer
 │   ├── gpt.py               # Transformer model (SelfAttentionHead, MultiHeadAttention, FeedForward, TransformerLayer, GPT)
 │   ├── train.py             # Training loop and checkpoint saving
@@ -57,7 +57,7 @@ python src/train.py
 ```
 
 The training script will:
-1. Load and shuffle all poems, split into 90% train / 10% validation
+1. Load poems from pre-split train/val/test files
 2. Build a character-level vocabulary
 3. Train the GPT model for 10,000 iterations
 4. Save a checkpoint to `checkpoints/`

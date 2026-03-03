@@ -110,7 +110,7 @@ if __name__ == "__main__":
     print(f"Training started at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
     # Prepare the data
-    train_poems, val_poems = prepare_data("data")
+    train_poems, val_poems, _ = prepare_data()
     print(f"Poems: {len(train_poems)} train, {len(val_poems)} val")
 
     # Create the tokenizer and build the vocabulary
