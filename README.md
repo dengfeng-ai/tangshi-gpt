@@ -117,12 +117,6 @@ Customize the number of generated samples and sampling parameters:
 python src/evaluate.py checkpoints/<checkpoint>.pt --num-samples 500 --temperature 0.8 --top-p 0.9
 ```
 
-Rhyme consistency checking requires the optional `pypinyin` package. If it is not installed, that tier is skipped with a warning:
-
-```bash
-pip install pypinyin
-```
-
 ## Online Demo
 
 A live demo of the poem generation can be found at [tangshi-gpt](http://tangshi-gpt-models.s3-website-ap-southeast-1.amazonaws.com). 
