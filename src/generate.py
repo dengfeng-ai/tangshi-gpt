@@ -30,7 +30,7 @@ def load_checkpoint(checkpoint_path: str) -> tuple[GPT, CharTokenizer]:
     return model, tokenizer
 
 
-@torch.no_grad()
+@torch.inference_mode()
 def generate_poem(
     model: GPT,
     tokenizer: CharTokenizer,
