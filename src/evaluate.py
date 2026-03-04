@@ -55,12 +55,10 @@ def compute_perplexity(
     total_loss = 0.0
     for _ in range(num_batches):
         start_indices = torch.randint(len(data) - context_size, (batch_size,))
-        x = torch.stack(
-            [data[i : i + context_size] for i in start_indices]
-        ).to(device)
-        y = torch.stack(
-            [data[i + 1 : i + context_size + 1] for i in start_indices]
-        ).to(device)
+        x = torch.stack([data[i : i + context_size] for i in start_indices]).to(device)
+        y = torch.stack([data[i + 1 : i + context_size + 1] for i in start_indices]).to(
+            device
+        )
         _, loss = model(x, y)
         total_loss += loss.item()
 
@@ -85,8 +83,8 @@ def analyze_structure(poem: Poem) -> dict:
 
     # Flatten content and parse into 句 by splitting on ，and 。
     flat = content.replace("\n", "")
-    phrases = []       # individual 句 texts
-    punctuation = []   # the delimiter after each 句
+    phrases = []  # individual 句 texts
+    punctuation = []  # the delimiter after each 句
     current = []
     for ch in flat:
         if ch in "，。":
@@ -114,9 +112,7 @@ def analyze_structure(poem: Poem) -> dict:
     # Punctuation: should alternate ，。，。...
     expected = ["，" if i % 2 == 0 else "。" for i in range(n_lines)]
     result["valid_punctuation"] = (
-        not has_trailing
-        and punctuation == expected
-        and len(punctuation) == n_lines
+        not has_trailing and punctuation == expected and len(punctuation) == n_lines
     )
 
     # Line count: 绝句 = 4 句, 律诗 = 8 句
@@ -129,12 +125,14 @@ def analyze_structure(poem: Poem) -> dict:
         result["chars_per_line"] = char_counts[0]
 
     # Combined: all three checks pass and line length is 5 or 7
-    result["valid"] = all([
-        result["valid_punctuation"],
-        result["valid_line_count"],
-        result["equal_length"],
-        result["chars_per_line"] in (5, 7),
-    ])
+    result["valid"] = all(
+        [
+            result["valid_punctuation"],
+            result["valid_line_count"],
+            result["equal_length"],
+            result["chars_per_line"] in (5, 7),
+        ]
+    )
 
     # Classify into one of four forms
     if result["valid"]:
@@ -147,6 +145,9 @@ def analyze_structure(poem: Poem) -> dict:
         result["form"] = forms.get((result["chars_per_line"], n_lines))
 
     return result
+
+
+# ============ Tier 3: Rhyme Consistency ============
 
 
 def extract_rhyme_chars(poem: Poem) -> list[str]:
@@ -202,7 +203,9 @@ def compute_diversity_metrics(poems: list[Poem], tokenizer: CharTokenizer) -> di
     for text in texts:
         all_chars.update(text)
     regular_vocab = {ch for ch in tokenizer.char_to_id if not ch.startswith("<")}
-    vocab_coverage = len(all_chars & regular_vocab) / len(regular_vocab) if regular_vocab else 0.0
+    vocab_coverage = (
+        len(all_chars & regular_vocab) / len(regular_vocab) if regular_vocab else 0.0
+    )
 
     # Self-repetition
     self_rep = compute_self_repetition(poems)
@@ -230,7 +233,9 @@ def generate_poems_batch(
     poems = []
     for title in titles:
         poem = generate_poem(
-            model, tokenizer, device,
+            model,
+            tokenizer,
+            device,
             title=title,
             temperature=temperature,
             top_p=top_p,
@@ -267,7 +272,10 @@ def run_evaluation(
     print("Tier 1: Test Set Perplexity")
     print("=" * 60)
     avg_loss, perplexity = compute_perplexity(
-        model, test_poems, tokenizer, context_size,
+        model,
+        test_poems,
+        tokenizer,
+        context_size,
     )
     print(f"  Average loss: {avg_loss:.4f}")
     print(f"  Perplexity:   {perplexity:.2f}")
@@ -281,8 +289,11 @@ def run_evaluation(
     test_titles = [p.title for p in test_poems]
     sample_titles = random.choices(test_titles, k=num_samples)
     generated_poems = generate_poems_batch(
-        model, tokenizer, sample_titles,
-        temperature=temperature, top_p=top_p,
+        model,
+        tokenizer,
+        sample_titles,
+        temperature=temperature,
+        top_p=top_p,
     )
     print(f"  Done. Generated {len(generated_poems)} poems.")
     print()
@@ -300,9 +311,15 @@ def run_evaluation(
     n_equal_len = sum(1 for s in structures if s["equal_length"])
     n_valid = sum(1 for s in structures if s["valid"])
 
-    print(f"  Valid punctuation (，/。):  {n_valid_punct}/{total} ({n_valid_punct / total:.1%})")
-    print(f"  Valid line count (4 or 8): {n_valid_lines}/{total} ({n_valid_lines / total:.1%})")
-    print(f"  Equal line length:         {n_equal_len}/{total} ({n_equal_len / total:.1%})")
+    print(
+        f"  Valid punctuation (，/。):  {n_valid_punct}/{total} ({n_valid_punct / total:.1%})"
+    )
+    print(
+        f"  Valid line count (4 or 8): {n_valid_lines}/{total} ({n_valid_lines / total:.1%})"
+    )
+    print(
+        f"  Equal line length:         {n_equal_len}/{total} ({n_equal_len / total:.1%})"
+    )
     print(f"  Fully valid:               {n_valid}/{total} ({n_valid / total:.1%})")
 
     form_counts = Counter(s["form"] for s in structures if s["form"])
@@ -332,7 +349,9 @@ def run_evaluation(
                 result = check_rhyme_consistency(rhyme_chars)
                 if result.get("consistent"):
                     n_rhyming += 1
-            print(f"  Rhyme-consistent: {n_rhyming}/{len(valid_poems)} ({n_rhyming / len(valid_poems):.1%})")
+            print(
+                f"  Rhyme-consistent: {n_rhyming}/{len(valid_poems)} ({n_rhyming / len(valid_poems):.1%})"
+            )
             print(f"  (among {len(valid_poems)} structurally valid poems)")
     print()
 
@@ -373,7 +392,9 @@ def run_evaluation(
         print(f"\n  --- {title} ---")
         for temp in temperatures:
             poem = generate_poem(
-                model, tokenizer, device,
+                model,
+                tokenizer,
+                device,
                 title=title,
                 temperature=temp,
                 top_p=top_p,
@@ -403,26 +424,37 @@ def main():
         description="Evaluate a tangshi-gpt checkpoint across multiple dimensions",
     )
     parser.add_argument(
-        "checkpoint", type=str, help="Path to checkpoint .pt file",
+        "checkpoint",
+        type=str,
+        help="Path to checkpoint .pt file",
     )
     parser.add_argument(
-        "--perplexity-only", action="store_true",
+        "--perplexity-only",
+        action="store_true",
         help="Only compute test-set perplexity (skip generation-based metrics)",
     )
     parser.add_argument(
-        "--num-samples", type=int, default=200,
+        "--num-samples",
+        type=int,
+        default=200,
         help="Number of poems to generate for evaluation (default: 200)",
     )
     parser.add_argument(
-        "--temperature", type=float, default=1.0,
+        "--temperature",
+        type=float,
+        default=1.0,
         help="Sampling temperature for generation (default: 1.0)",
     )
     parser.add_argument(
-        "--top-p", type=float, default=1.0,
+        "--top-p",
+        type=float,
+        default=1.0,
         help="Top-p (nucleus) sampling threshold (default: 1.0)",
     )
     parser.add_argument(
-        "--seed", type=int, default=42,
+        "--seed",
+        type=int,
+        default=42,
         help="Random seed for reproducibility (default: 42)",
     )
     args = parser.parse_args()
