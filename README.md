@@ -31,7 +31,9 @@ Tang dynasty poems (唐诗) sourced from the [chinese-poetry](https://github.com
 │   ├── tokenizer.py         # Character-level tokenizer
 │   ├── gpt.py               # Transformer model (SelfAttentionHead, MultiHeadAttention, FeedForward, TransformerLayer, GPT)
 │   ├── train.py             # Training loop and checkpoint saving
-│   └── generate.py          # CLI for generating poems from a checkpoint
+│   ├── generate.py          # CLI for generating poems from a checkpoint
+│   ├── evaluate.py          # Comprehensive evaluation script (perplexity, structure, rhyme, diversity)
+│   └── rhyme_utils.py       # Rhyme checking via pypinyin (optional dependency)
 └── requirements.txt
 ```
 
@@ -93,6 +95,26 @@ Both options can be combined:
 
 ```bash
 python src/generate.py checkpoints/<checkpoint>.pt --title "春望" --temperature 0.8 --top-p 0.9
+```
+
+### Evaluation
+
+Evaluate a checkpoint across five dimensions: test-set perplexity, structural validity, rhyme consistency, generation diversity, and qualitative spot-checks.
+
+```bash
+python src/evaluate.py checkpoints/<checkpoint>.pt
+```
+
+For a quick perplexity-only run (no generation):
+
+```bash
+python src/evaluate.py checkpoints/<checkpoint>.pt --perplexity-only
+```
+
+Customize the number of generated samples and sampling parameters:
+
+```bash
+python src/evaluate.py checkpoints/<checkpoint>.pt --num-samples 500 --temperature 0.8 --top-p 0.9
 ```
 
 ## Online Demo
