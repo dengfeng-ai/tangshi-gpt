@@ -117,6 +117,21 @@ Customize the number of generated samples and sampling parameters:
 python src/evaluate.py checkpoints/<checkpoint>.pt --num-samples 500 --temperature 0.8 --top-p 0.9
 ```
 
+#### Results
+
+Evaluation of the shared checkpoint (`checkpoints/checkpoint.pt`) on 200 generated poems:
+
+| Metric | Score |
+|---|---|
+| Test set perplexity | 48.64 |
+| Structural validity | 96.5% |
+| Rhyme consistency | 53.4% |
+| Distinct-1 / 2 / 3 | 0.181 / 0.801 / 0.956 |
+| Vocab coverage | 23.7% |
+| Self-repetition | 0.6% |
+
+The model reliably produces well-formed Tang poetry structures. Rhyme consistency — the hardest aspect for a character-level model to learn implicitly — is an area for further improvement.
+
 ## Online Demo
 
 A live demo of the poem generation can be found at [tangshi-gpt](http://tangshi-gpt-models.s3-website-ap-southeast-1.amazonaws.com). 
