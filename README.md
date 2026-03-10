@@ -12,12 +12,14 @@ This project implements a decoder-only transformer from scratch using PyTorch. T
 - **Model**: GPT with multi-head self-attention, feed-forward layers, and residual connections
 - **Default config**: 6 layers, 8 heads, 256 embedding dimensions, context length of 256
 
+> **Implementation note:** In the standard transformer, the projection matrices W_q, W_k, W_v each have shape `(d_model, d_model)`. In this implementation, each `SelfAttentionHead` uses separate W_q, W_k, W_v matrices of shape `(d_model, head_size)` where `head_size = d_model // n_head`. The `MultiHeadAttention` module then concatenates the outputs of all heads back to `d_model` dimensions. This is mathematically equivalent to a single `(d_model, d_model)` projection followed by a split, but makes the per-head computation more explicit and easier to understand. In production implementations, a single `(d_model, d_model)` matrix is preferred as it allows the projection for all heads to be computed in one batched operation, which is more efficient on GPUs.
+
 ### Data
 
 Tang dynasty poems (唐诗) sourced from the [chinese-poetry](https://github.com/chinese-poetry/chinese-poetry) dataset. Each poem is encoded as:
 
 ```
-<sos> [Title] <sep> [Content] <eos>
+<sos>[Title]<sep>[Content]<eos>
 ```
 
 ## Project Structure
