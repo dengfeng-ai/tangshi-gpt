@@ -1,4 +1,4 @@
-# tangshi-gpt
+# tangshi-GPT
 
 A character-level GPT model that generates Chinese poetry, trained on ~37,000 Tang dynasty (唐朝) poems.
 
@@ -136,7 +136,7 @@ The model reliably produces well-formed Tang poetry structures. Rhyme consistenc
 
 ## Online Demo
 
-A live demo of the poem generation can be found at [tangshi-gpt](http://tangshi-gpt-models.s3-website-ap-southeast-1.amazonaws.com). 
+A live demo of the poem generation can be found at [tangshi-GPT](http://tangshi-gpt-models.s3-website-ap-southeast-1.amazonaws.com). 
 
 <img src="images/送别.png" alt="Demo Screenshot" width="500">
 
