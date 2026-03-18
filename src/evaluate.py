@@ -1,11 +1,10 @@
-"""Comprehensive evaluation script for tangshi-gpt.
+"""Evaluation script for tangshi-gpt.
 
-Evaluates across five dimensions:
+Evaluates across four dimensions:
   1. Test set perplexity
   2. Structural validity of generated poems
   3. Rhyme consistency (optional, requires pypinyin)
-  4. Generation diversity
-  5. Qualitative spot-check at multiple temperatures
+  4. Qualitative spot-check at multiple temperatures
 
 Usage:
     python src/evaluate.py checkpoints/checkpoint.pt
@@ -32,7 +31,7 @@ except ImportError:
     HAS_PYPINYIN = False
 
 
-# ============ Tier 1: Test Set Perplexity ============
+# ============ Test Set Perplexity ============
 
 
 @torch.inference_mode()
@@ -43,11 +42,8 @@ def compute_perplexity(
     context_size: int,
     batch_size: int = 64,
     num_batches: int = 200,
-) -> tuple[float, float]:
-    """Compute perplexity on the test set using random context windows.
-
-    Returns (average_loss, perplexity).
-    """
+) -> float:
+    """Compute perplexity on the test set using random context windows."""
     test_text = "".join(p.train_text() for p in test_poems)
     token_ids = tokenizer.encode(test_text)
     data = torch.tensor(token_ids, dtype=torch.long)
@@ -63,11 +59,10 @@ def compute_perplexity(
         total_loss += loss.item()
 
     avg_loss = total_loss / num_batches
-    perplexity = math.exp(avg_loss)
-    return avg_loss, perplexity
+    return math.exp(avg_loss)
 
 
-# ============ Tier 2: Structural Validity ============
+# ============ Structural Validity ============
 
 
 def analyze_structure(poem: Poem) -> dict:
@@ -99,55 +94,38 @@ def analyze_structure(poem: Poem) -> dict:
     has_trailing = len(current) > 0
     n_lines = len(phrases)
 
-    result = {
-        "line_count": n_lines,
-        "valid_punctuation": False,
-        "valid_line_count": False,
-        "equal_length": False,
-        "chars_per_line": None,
-        "valid": False,
-        "form": None,
-    }
-
     # Punctuation: should alternate ，。，。...
     expected = ["，" if i % 2 == 0 else "。" for i in range(n_lines)]
-    result["valid_punctuation"] = (
+    valid_punctuation = (
         not has_trailing and punctuation == expected and len(punctuation) == n_lines
     )
 
     # Line count: 绝句 = 4 句, 律诗 = 8 句
-    result["valid_line_count"] = n_lines in (4, 8)
+    valid_line_count = n_lines in (4, 8)
 
     # Equal character count per 句
     char_counts = [len(p) for p in phrases]
-    if char_counts and all(c == char_counts[0] for c in char_counts):
-        result["equal_length"] = True
-        result["chars_per_line"] = char_counts[0]
+    equal_length = bool(char_counts and all(c == char_counts[0] for c in char_counts))
+    chars_per_line = char_counts[0] if equal_length else None
 
     # Combined: all three checks pass and line length is 5 or 7
-    result["valid"] = all(
-        [
-            result["valid_punctuation"],
-            result["valid_line_count"],
-            result["equal_length"],
-            result["chars_per_line"] in (5, 7),
-        ]
-    )
+    valid = all([valid_punctuation, valid_line_count, equal_length, chars_per_line in (5, 7)])
 
     # Classify into one of four forms
-    if result["valid"]:
+    form = None
+    if valid:
         forms = {
             (5, 4): "五言绝句",
             (7, 4): "七言绝句",
             (5, 8): "五言律诗",
             (7, 8): "七言律诗",
         }
-        result["form"] = forms.get((result["chars_per_line"], n_lines))
+        form = forms.get((chars_per_line, n_lines))
 
-    return result
+    return {"valid": valid, "form": form}
 
 
-# ============ Tier 3: Rhyme Consistency ============
+# ============ Rhyme Consistency ============
 
 
 def extract_rhyme_chars(poem: Poem) -> list[str]:
@@ -160,7 +138,7 @@ def extract_rhyme_chars(poem: Poem) -> list[str]:
     return rhyme_chars
 
 
-# ============ Tier 4: Diversity Metrics ============
+# ============ Diversity Metrics ============
 
 
 def compute_distinct_n(texts: list[str], n: int) -> float:
@@ -175,48 +153,10 @@ def compute_distinct_n(texts: list[str], n: int) -> float:
     return len(set(total_ngrams)) / len(total_ngrams)
 
 
-def compute_self_repetition(poems: list[Poem]) -> float:
-    """Compute average intra-poem bigram repetition rate."""
-    rates = []
-    for poem in poems:
-        chars = list(poem.content.replace("\n", ""))
-        if len(chars) < 2:
-            continue
-        bigrams = [tuple(chars[i : i + 2]) for i in range(len(chars) - 1)]
-        counts = Counter(bigrams)
-        repeated = sum(c - 1 for c in counts.values() if c > 1)
-        rates.append(repeated / len(bigrams))
-    return sum(rates) / len(rates) if rates else 0.0
-
-
-def compute_diversity_metrics(poems: list[Poem], tokenizer: CharTokenizer) -> dict:
-    """Compute diversity metrics for a set of poems."""
+def compute_distinct_2(poems: list[Poem]) -> float:
+    """Compute distinct-2 for a set of poems."""
     texts = [p.content for p in poems]
-
-    # Distinct-n ratios
-    distinct_1 = compute_distinct_n(texts, 1)
-    distinct_2 = compute_distinct_n(texts, 2)
-    distinct_3 = compute_distinct_n(texts, 3)
-
-    # Vocabulary coverage
-    all_chars = set()
-    for text in texts:
-        all_chars.update(text)
-    regular_vocab = {ch for ch in tokenizer.char_to_id if not ch.startswith("<")}
-    vocab_coverage = (
-        len(all_chars & regular_vocab) / len(regular_vocab) if regular_vocab else 0.0
-    )
-
-    # Self-repetition
-    self_rep = compute_self_repetition(poems)
-
-    return {
-        "distinct_1": distinct_1,
-        "distinct_2": distinct_2,
-        "distinct_3": distinct_3,
-        "vocab_coverage": vocab_coverage,
-        "self_repetition": self_rep,
-    }
+    return compute_distinct_n(texts, 2)
 
 
 # ============ Generation Helper ============
@@ -267,24 +207,23 @@ def run_evaluation(
     print(f"Test poems: {len(test_poems)}")
     print()
 
-    # ── Tier 1: Perplexity ──────────────────────────────────────
+    # ── Perplexity ──────────────────────────────────────────────
     print("=" * 60)
-    print("Tier 1: Test Set Perplexity")
+    print("Test Set Perplexity")
     print("=" * 60)
-    avg_loss, perplexity = compute_perplexity(
+    perplexity = compute_perplexity(
         model,
         test_poems,
         tokenizer,
         context_size,
     )
-    print(f"  Average loss: {avg_loss:.4f}")
-    print(f"  Perplexity:   {perplexity:.2f}")
+    print(f"  Perplexity: {perplexity:.2f}")
     print()
 
     if perplexity_only:
         return
 
-    # ── Generate poems for Tiers 2-4 ───────────────────────────
+    # ── Generate poems ──────────────────────────────────────────
     print(f"Generating {num_samples} poems for evaluation...")
     test_titles = [p.title for p in test_poems]
     sample_titles = random.choices(test_titles, k=num_samples)
@@ -298,29 +237,16 @@ def run_evaluation(
     print(f"  Done. Generated {len(generated_poems)} poems.")
     print()
 
-    # ── Tier 2: Structural Validity ─────────────────────────────
+    # ── Structural Validity ─────────────────────────────────────
     print("=" * 60)
-    print("Tier 2: Structural Validity")
+    print("Structural Validity")
     print("=" * 60)
 
     structures = [analyze_structure(p) for p in generated_poems]
     total = len(structures)
-
-    n_valid_punct = sum(1 for s in structures if s["valid_punctuation"])
-    n_valid_lines = sum(1 for s in structures if s["valid_line_count"])
-    n_equal_len = sum(1 for s in structures if s["equal_length"])
     n_valid = sum(1 for s in structures if s["valid"])
 
-    print(
-        f"  Valid punctuation (，/。):  {n_valid_punct}/{total} ({n_valid_punct / total:.1%})"
-    )
-    print(
-        f"  Valid line count (4 or 8): {n_valid_lines}/{total} ({n_valid_lines / total:.1%})"
-    )
-    print(
-        f"  Equal line length:         {n_equal_len}/{total} ({n_equal_len / total:.1%})"
-    )
-    print(f"  Fully valid:               {n_valid}/{total} ({n_valid / total:.1%})")
+    print(f"  Fully valid: {n_valid}/{total} ({n_valid / total:.1%})")
 
     form_counts = Counter(s["form"] for s in structures if s["form"])
     if form_counts:
@@ -330,9 +256,9 @@ def run_evaluation(
             print(f"    {form}: {count} ({count / n_valid:.1%} of valid)")
     print()
 
-    # ── Tier 3: Rhyme Consistency ───────────────────────────────
+    # ── Rhyme Consistency ───────────────────────────────────────
     print("=" * 60)
-    print("Tier 3: Rhyme Consistency")
+    print("Rhyme Consistency")
     print("=" * 60)
 
     if not HAS_PYPINYIN:
@@ -355,32 +281,21 @@ def run_evaluation(
             print(f"  (among {len(valid_poems)} structurally valid poems)")
     print()
 
-    # ── Tier 4: Generation Diversity ────────────────────────────
+    # ── Generation Diversity ────────────────────────────────────
     print("=" * 60)
-    print("Tier 4: Generation Diversity")
+    print("Generation Diversity")
     print("=" * 60)
 
-    gen_metrics = compute_diversity_metrics(generated_poems, tokenizer)
-    print(f"  Generated ({len(generated_poems)} poems):")
-    print(f"    Distinct-1:      {gen_metrics['distinct_1']:.4f}")
-    print(f"    Distinct-2:      {gen_metrics['distinct_2']:.4f}")
-    print(f"    Distinct-3:      {gen_metrics['distinct_3']:.4f}")
-    print(f"    Vocab coverage:  {gen_metrics['vocab_coverage']:.1%}")
-    print(f"    Self-repetition: {gen_metrics['self_repetition']:.4f}")
-
+    gen_distinct_2 = compute_distinct_2(generated_poems)
     test_sample = random.sample(test_poems, min(num_samples, len(test_poems)))
-    ref_metrics = compute_diversity_metrics(test_sample, tokenizer)
-    print(f"\n  Test set reference ({len(test_sample)} poems):")
-    print(f"    Distinct-1:      {ref_metrics['distinct_1']:.4f}")
-    print(f"    Distinct-2:      {ref_metrics['distinct_2']:.4f}")
-    print(f"    Distinct-3:      {ref_metrics['distinct_3']:.4f}")
-    print(f"    Vocab coverage:  {ref_metrics['vocab_coverage']:.1%}")
-    print(f"    Self-repetition: {ref_metrics['self_repetition']:.4f}")
+    ref_distinct_2 = compute_distinct_2(test_sample)
+    print(f"  Distinct-2 (generated):  {gen_distinct_2:.4f}")
+    print(f"  Distinct-2 (test ref):   {ref_distinct_2:.4f}")
     print()
 
-    # ── Tier 5: Qualitative Spot-Check ──────────────────────────
+    # ── Qualitative Spot-Check ──────────────────────────────────
     print("=" * 60)
-    print("Tier 5: Qualitative Spot-Check")
+    print("Qualitative Spot-Check")
     print("=" * 60)
 
     curated_titles = ["春望", "秋思", "送別", "月夜", "登高", "江雪", "詠梅", "山行"]
