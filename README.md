@@ -101,7 +101,7 @@ python src/generate.py checkpoints/<checkpoint>.pt --title "春望" --temperatur
 
 ### Evaluation
 
-Evaluate a checkpoint across five dimensions: test-set perplexity, structural validity, rhyme consistency, generation diversity, and qualitative spot-checks.
+Evaluate a checkpoint across four dimensions: test-set perplexity, structural validity, rhyme consistency, and qualitative spot-checks.
 
 ```bash
 python src/evaluate.py checkpoints/<checkpoint>.pt
@@ -128,9 +128,7 @@ Evaluation of the shared checkpoint (`checkpoints/checkpoint.pt`) on 200 generat
 | Test set perplexity | 48.64 |
 | Structural validity | 96.5% |
 | Rhyme consistency | 53.4% |
-| Distinct-1 / 2 / 3 | 0.181 / 0.801 / 0.956 |
-| Vocab coverage | 23.7% |
-| Self-repetition | 0.6% |
+| Distinct-2 | 0.801 |
 
 The model reliably produces well-formed Tang poetry structures. Rhyme consistency — the hardest aspect for a character-level model to learn implicitly — is an area for further improvement.
 
