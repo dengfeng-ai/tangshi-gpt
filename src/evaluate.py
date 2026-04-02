@@ -41,20 +41,20 @@ def compute_perplexity(
     tokenizer: CharTokenizer,
     context_size: int,
     batch_size: int = 64,
-    num_batches: int = 200,
 ) -> float:
-    """Compute perplexity on the test set using random context windows."""
-    test_text = "".join(p.train_text() for p in test_poems)
-    token_ids = tokenizer.encode(test_text)
-    data = torch.tensor(token_ids, dtype=torch.long)
+    """Compute perplexity on the test set by iterating over all poems."""
+    pad_id = tokenizer.char_to_id["<pad>"]
+    encoded = [tokenizer.encode(poem.train_text()) for poem in test_poems]
+    max_len = max(len(ids) for ids in encoded)
+    padded = [ids + [pad_id] * (max_len - len(ids)) for ids in encoded]
+    data = torch.tensor(padded, dtype=torch.long)
 
     total_loss = 0.0
-    for _ in range(num_batches):
-        start_indices = torch.randint(len(data) - context_size, (batch_size,))
-        x = torch.stack([data[i : i + context_size] for i in start_indices]).to(device)
-        y = torch.stack([data[i + 1 : i + context_size + 1] for i in start_indices]).to(
-            device
-        )
+    num_batches = (len(data) + batch_size - 1) // batch_size
+    for i in range(num_batches):
+        batch = data[i * batch_size : (i + 1) * batch_size]
+        x = batch[:, :-1].to(device)
+        y = batch[:, 1:].to(device)
         _, loss = model(x, y)
         total_loss += loss.item()
 
