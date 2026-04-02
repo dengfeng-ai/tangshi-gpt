@@ -42,35 +42,28 @@ def compute_perplexity(
     context_size: int,
     batch_size: int = 64,
 ) -> float:
-    """Compute perplexity on the test set by iterating over all poems."""
-    pad_id = tokenizer.char_to_id["<pad>"]
-    encoded = [tokenizer.encode(poem.train_text()) for poem in test_poems]
-
-    # Pack poems into fixed-length sequences
-    sequences = []
-    current_seq = []
-    for ids in encoded:
-        if len(current_seq) + len(ids) > context_size:
-            current_seq.extend([pad_id] * (context_size - len(current_seq)))
-            sequences.append(current_seq)
-            current_seq = []
-        current_seq.extend(ids)
-    if current_seq:
-        current_seq.extend([pad_id] * (context_size - len(current_seq)))
-        sequences.append(current_seq)
-
-    data = torch.tensor(sequences, dtype=torch.long)
+    """Compute perplexity on the test set deterministically."""
+    test_text = "".join(p.train_text() for p in test_poems)
+    token_ids = tokenizer.encode(test_text)
+    data = torch.tensor(token_ids, dtype=torch.long)
 
     total_loss = 0.0
-    num_batches = (len(data) + batch_size - 1) // batch_size
+    num_batches = (len(data) - context_size) // (batch_size * context_size)
+    num_batches = max(num_batches, 1)
+    count = 0
     for i in range(num_batches):
-        batch = data[i * batch_size : (i + 1) * batch_size]
-        x = batch[:, :-1].to(device)
-        y = batch[:, 1:].to(device)
+        offset = i * batch_size * context_size
+        start_indices = [offset + j * context_size for j in range(batch_size)]
+        start_indices = [s for s in start_indices if s + context_size < len(data)]
+        if not start_indices:
+            break
+        x = torch.stack([data[s : s + context_size] for s in start_indices]).to(device)
+        y = torch.stack([data[s + 1 : s + context_size + 1] for s in start_indices]).to(device)
         _, loss = model(x, y)
         total_loss += loss.item()
+        count += 1
 
-    avg_loss = total_loss / num_batches
+    avg_loss = total_loss / max(count, 1)
     return math.exp(avg_loss)
 
 

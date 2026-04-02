@@ -10,9 +10,9 @@ from data_preparation import prepare_data
 # ============ Hyperparameters =============
 # data
 batch_size = 64
+context_size = 256
 
 # model
-context_size = 256
 d_model = 256
 n_head = 8
 n_layer = 6
@@ -25,62 +25,36 @@ eval_interval = 500
 
 
 # ============ Data loading =============
-def pack_poems(poems: list, tokenizer: CharTokenizer) -> torch.Tensor:
-    """Pack multiple poems into fixed-length sequences.
-
-    Poems are concatenated into sequences of context_size tokens. When
-    the next poem doesn't fit, the remaining space is padded and a new
-    sequence is started. Returns a tensor of shape (num_seqs, context_size).
-    """
-    pad_id = tokenizer.char_to_id["<pad>"]
-    encoded = [tokenizer.encode(poem.train_text()) for poem in poems]
-    assert all(len(ids) <= context_size for ids in encoded), (
-        "Some poems exceed context_size"
-    )
-
-    sequences = []
-    current_seq = []
-
-    for ids in encoded:
-        if len(current_seq) + len(ids) > context_size:
-            current_seq.extend([pad_id] * (context_size - len(current_seq)))
-            sequences.append(current_seq)
-            current_seq = []
-        current_seq.extend(ids)
-
-    if current_seq:
-        current_seq.extend([pad_id] * (context_size - len(current_seq)))
-        sequences.append(current_seq)
-
-    return torch.tensor(sequences, dtype=torch.long)
-
-
-def sample_batch(data: torch.Tensor):
-    """Sample a random batch of poems from the padded dataset."""
-    indices = torch.randint(len(data), (batch_size,))
-    batch = data[indices]
-    x = batch[:, :-1].to(device)
-    y = batch[:, 1:].to(device)
+def sample_batch(data):
+    start_indices = torch.randint(len(data) - context_size, (batch_size,))
+    x = torch.stack([data[i : i + context_size] for i in start_indices])
+    y = torch.stack([data[i + 1 : i + context_size + 1] for i in start_indices])
+    x, y = x.to(device), y.to(device)
     return x, y
 
 
 # =========== Evaluate the loss on train and val sets =============
 @torch.no_grad()
-def estimate_loss(train_data: torch.Tensor, val_data: torch.Tensor):
-    """Evaluate loss by iterating over all poems deterministically."""
+def estimate_loss(train_data, val_data):
+    """Evaluate loss deterministically by sliding over the entire dataset."""
     model.eval()
 
     results = {}
     for name, data in [("train", train_data), ("val", val_data)]:
         total_loss = 0.0
-        num_batches = (len(data) + batch_size - 1) // batch_size
+        num_batches = (len(data) - context_size) // (batch_size * context_size)
+        num_batches = max(num_batches, 1)
         for i in range(num_batches):
-            batch = data[i * batch_size : (i + 1) * batch_size]
-            x = batch[:, :-1].to(device)
-            y = batch[:, 1:].to(device)
+            offset = i * batch_size * context_size
+            start_indices = [offset + j * context_size for j in range(batch_size)]
+            start_indices = [s for s in start_indices if s + context_size < len(data)]
+            if not start_indices:
+                break
+            x = torch.stack([data[s : s + context_size] for s in start_indices]).to(device)
+            y = torch.stack([data[s + 1 : s + context_size + 1] for s in start_indices]).to(device)
             _, loss = model(x, y)
             total_loss += loss.item()
-        results[name] = total_loss / num_batches
+        results[name] = total_loss / max(i + 1, 1)
 
     model.train()
     return results["train"], results["val"]
@@ -151,10 +125,13 @@ if __name__ == "__main__":
     tokenizer = CharTokenizer()
     tokenizer.build_vocab(full_text)
 
-    # Pack poems into fixed-length sequences (multiple poems per row)
-    train_data = pack_poems(train_poems, tokenizer)
-    val_data = pack_poems(val_poems, tokenizer)
-    print(f"Train tensor: {train_data.shape}, Val tensor: {val_data.shape}")
+    # Encode the poems into token ids
+    train_token_ids = tokenizer.encode("".join([p.train_text() for p in train_poems]))
+    val_token_ids = tokenizer.encode("".join([p.train_text() for p in val_poems]))
+
+    # Convert token ids to tensors
+    train_data = torch.tensor(train_token_ids, dtype=torch.long)
+    val_data = torch.tensor(val_token_ids, dtype=torch.long)
 
     # Create the model
     model = GPT(
