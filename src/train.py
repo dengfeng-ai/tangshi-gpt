@@ -10,9 +10,9 @@ from data_preparation import prepare_data
 # ============ Hyperparameters =============
 # data
 batch_size = 64
-context_size = 256
 
 # model
+context_size = 256
 d_model = 256
 n_head = 8
 n_layer = 6
@@ -22,42 +22,51 @@ dropout = 0.2
 max_iters = 10000
 learning_rate = 3e-4
 eval_interval = 500
-eval_iters = 200
 
 
 # ============ Data loading =============
-def sample_batch(data):
-    start_indices = torch.randint(len(data) - context_size, (batch_size,))
-    x = torch.stack([data[i : i + context_size] for i in start_indices])
-    y = torch.stack([data[i + 1 : i + context_size + 1] for i in start_indices])
-    x, y = x.to(device), y.to(device)
+def encode_poems(poems: list, tokenizer: CharTokenizer) -> torch.Tensor:
+    """Encode each poem into token ids, left-aligned with right padding.
+
+    Returns a tensor of shape (num_poems, max_len) where max_len is the
+    length of the longest poem in the set.
+    """
+    pad_id = tokenizer.char_to_id["<pad>"]
+    encoded = [tokenizer.encode(poem.train_text()) for poem in poems]
+    max_len = max(len(ids) for ids in encoded)
+    padded = [ids + [pad_id] * (max_len - len(ids)) for ids in encoded]
+    return torch.tensor(padded, dtype=torch.long)
+
+
+def sample_batch(data: torch.Tensor):
+    """Sample a random batch of poems from the padded dataset."""
+    indices = torch.randint(len(data), (batch_size,))
+    batch = data[indices]
+    x = batch[:, :-1].to(device)
+    y = batch[:, 1:].to(device)
     return x, y
 
 
 # =========== Evaluate the loss on train and val sets =============
 @torch.no_grad()
-def estimate_loss(val_data, train_data):
+def estimate_loss(train_data: torch.Tensor, val_data: torch.Tensor):
+    """Evaluate loss by iterating over all poems deterministically."""
     model.eval()
 
-    # Calculate average loss for train set
-    total_train_loss = 0
-    for _ in range(eval_iters):
-        X, Y = sample_batch(train_data)
-        _, loss = model(X, Y)
-        total_train_loss += loss.item()
-
-    # Calculate average loss for val set
-    total_val_loss = 0
-    for _ in range(eval_iters):
-        X, Y = sample_batch(val_data)
-        _, loss = model(X, Y)
-        total_val_loss += loss.item()
-
-    train_loss = total_train_loss / eval_iters
-    val_loss = total_val_loss / eval_iters
+    results = {}
+    for name, data in [("train", train_data), ("val", val_data)]:
+        total_loss = 0.0
+        num_batches = (len(data) + batch_size - 1) // batch_size
+        for i in range(num_batches):
+            batch = data[i * batch_size : (i + 1) * batch_size]
+            x = batch[:, :-1].to(device)
+            y = batch[:, 1:].to(device)
+            _, loss = model(x, y)
+            total_loss += loss.item()
+        results[name] = total_loss / num_batches
 
     model.train()
-    return train_loss, val_loss
+    return results["train"], results["val"]
 
 
 # ============ Training Loops =============
@@ -69,7 +78,7 @@ def train(model: GPT, train_data, val_data, metrics_path: str):
         for iter in range(max_iters):
             # Evaluate the loss on train and val sets
             if iter % eval_interval == 0:
-                train_loss, val_loss = estimate_loss(val_data, train_data)
+                train_loss, val_loss = estimate_loss(train_data, val_data)
                 print(f"step {iter}: train loss {train_loss:.4f}, val loss {val_loss:.4f}")
                 metrics_file.write(json.dumps({"step": iter, "train_loss": train_loss, "val_loss": val_loss}) + "\n")
                 metrics_file.flush()
@@ -83,7 +92,7 @@ def train(model: GPT, train_data, val_data, metrics_path: str):
             loss.backward()
             optimizer.step()
 
-        train_loss, val_loss = estimate_loss(val_data, train_data)
+        train_loss, val_loss = estimate_loss(train_data, val_data)
         print(f"step {iter}: train loss {train_loss:.4f}, val loss {val_loss:.4f}\n")
         metrics_file.write(json.dumps({"step": iter, "train_loss": train_loss, "val_loss": val_loss}) + "\n")
 
@@ -125,13 +134,10 @@ if __name__ == "__main__":
     tokenizer = CharTokenizer()
     tokenizer.build_vocab(full_text)
 
-    # Encode the poems into token ids
-    train_token_ids = tokenizer.encode("".join([p.train_text() for p in train_poems]))
-    val_token_ids = tokenizer.encode("".join([p.train_text() for p in val_poems]))
-
-    # Convert token ids to tensors
-    train_data = torch.tensor(train_token_ids, dtype=torch.long)
-    val_data = torch.tensor(val_token_ids, dtype=torch.long)
+    # Encode poems into padded tensors (one poem per row)
+    train_data = encode_poems(train_poems, tokenizer)
+    val_data = encode_poems(val_poems, tokenizer)
+    print(f"Train tensor: {train_data.shape}, Val tensor: {val_data.shape}")
 
     # Create the model
     model = GPT(
