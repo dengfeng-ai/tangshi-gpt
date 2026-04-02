@@ -71,33 +71,21 @@ The training script will:
 >   - If you want to train, you can adjust the hyperparameters in `train.py` (e.g., `max_iters`, `batch_size`, `learning_rate`) to fit your resources and needs.
 >   - I shared the trained checkpoint in `checkpoints/checkpoint.pt` for you to generate poems without training.
 
-### Generating Poems
+#### Training Loss
 
-After training, generate poems from a saved checkpoint:
+| Step | Train Loss | Val Loss |
+|------|-----------|----------|
+| 0 | 9.00 | 9.00 |
+| 2,000 | 4.27 | 4.49 |
+| 4,000 | 3.72 | 4.19 |
+| 6,000 | 3.40 | 4.11 |
+| 6,500 | 3.34 | **4.11** |
+| 8,000 | 3.17 | 4.11 |
+| 9,999 | 2.99 | 4.15 |
 
-```bash
-python src/generate.py checkpoints/<checkpoint>.pt --title "春望"
-```
+<img src="images/loss_curve.png" alt="Training Loss Curve" width="700">
 
-Omit `--title` to generate without a title prompt.
-
-Use `--temperature` to control the randomness of the output (default: `1.0`). Lower values produce more deterministic results, higher values increase diversity:
-
-```bash
-python src/generate.py checkpoints/<checkpoint>.pt --title "春望" --temperature 0.8
-```
-
-Use `--top-p` for nucleus sampling (default: `1.0`). This restricts sampling to the smallest set of tokens whose cumulative probability exceeds the threshold, filtering out unlikely tokens:
-
-```bash
-python src/generate.py checkpoints/<checkpoint>.pt --title "春望" --top-p 0.9
-```
-
-Both options can be combined:
-
-```bash
-python src/generate.py checkpoints/<checkpoint>.pt --title "春望" --temperature 0.8 --top-p 0.9
-```
+Validation loss bottoms out around step 6,000–6,500 while training loss continues to decrease, indicating mild overfitting in later steps.
 
 ### Evaluation
 
@@ -125,12 +113,40 @@ Evaluation of the shared checkpoint (`checkpoints/checkpoint.pt`) on 200 generat
 
 | Metric | Score |
 |---|---|
-| Test set perplexity | 48.64 |
-| Structural validity | 96.5% |
-| Rhyme consistency | 53.4% |
-| Distinct-2 | 0.801 |
+| Test set perplexity | 63.27 |
+| Structural validity | 96.0% |
+| Rhyme consistency | 39.1% |
+| Distinct-2 | 0.789 |
 
-The model reliably produces well-formed Tang poetry structures. Rhyme consistency — the hardest aspect for a character-level model to learn implicitly — is an area for further improvement.
+The model reliably produces well-formed Tang poetry structures (96% valid). Rhyme consistency — the hardest aspect for a character-level model to learn implicitly — is an area for further improvement.
+
+### Generating Poems
+
+After training, generate poems from a saved checkpoint:
+
+```bash
+python src/generate.py checkpoints/<checkpoint>.pt --title "春望"
+```
+
+Omit `--title` to generate without a title prompt.
+
+Use `--temperature` to control the randomness of the output (default: `1.0`). Lower values produce more deterministic results, higher values increase diversity:
+
+```bash
+python src/generate.py checkpoints/<checkpoint>.pt --title "春望" --temperature 0.8
+```
+
+Use `--top-p` for nucleus sampling (default: `1.0`). This restricts sampling to the smallest set of tokens whose cumulative probability exceeds the threshold, filtering out unlikely tokens:
+
+```bash
+python src/generate.py checkpoints/<checkpoint>.pt --title "春望" --top-p 0.9
+```
+
+Both options can be combined:
+
+```bash
+python src/generate.py checkpoints/<checkpoint>.pt --title "春望" --temperature 0.8 --top-p 0.9
+```
 
 ## Online Demo
 
