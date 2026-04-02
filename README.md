@@ -71,21 +71,6 @@ The training script will:
 >   - If you want to train, you can adjust the hyperparameters in `train.py` (e.g., `max_iters`, `batch_size`, `learning_rate`) to fit your resources and needs.
 >   - I shared the trained checkpoint in `checkpoints/checkpoint.pt` for you to generate poems without training.
 
-#### Training Loss
-
-| Step | Train Loss | Val Loss |
-|------|-----------|----------|
-| 0 | 9.00 | 9.00 |
-| 2,000 | 4.27 | 4.49 |
-| 4,000 | 3.72 | 4.19 |
-| 6,000 | 3.40 | 4.11 |
-| 6,500 | 3.34 | **4.11** |
-| 8,000 | 3.17 | 4.11 |
-| 9,999 | 2.99 | 4.15 |
-
-<img src="images/loss_curve.png" alt="Training Loss Curve" width="700">
-
-Validation loss bottoms out around step 6,000–6,500 while training loss continues to decrease, indicating mild overfitting in later steps.
 
 ### Evaluation
 
@@ -113,12 +98,12 @@ Evaluation of the shared checkpoint (`checkpoints/checkpoint.pt`) on 200 generat
 
 | Metric | Score |
 |---|---|
-| Test set perplexity | 63.27 |
-| Structural validity | 96.0% |
-| Rhyme consistency | 39.1% |
-| Distinct-2 | 0.789 |
+| Test set perplexity | 48.07 |
+| Structural validity | 96.5% |
+| Rhyme consistency | 53.4% |
+| Distinct-2 | 0.8012 |
 
-The model reliably produces well-formed Tang poetry structures (96% valid). Rhyme consistency — the hardest aspect for a character-level model to learn implicitly — is an area for further improvement.
+The model reliably produces well-formed Tang poetry structures. Rhyme consistency — the hardest aspect for a character-level model to learn implicitly — is an area for further improvement.
 
 ### Generating Poems
 

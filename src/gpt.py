@@ -135,10 +135,7 @@ class GPT(nn.Module):
             loss = None
         else:
             B, T, vocab_size = logits.shape
-            # ignore_index=0 masks out <pad> token (id=0) from loss computation
-            loss = F.cross_entropy(
-                logits.view(B * T, vocab_size), targets.view(B * T), ignore_index=0
-            )
+            loss = F.cross_entropy(logits.view(B * T, vocab_size), targets.view(B * T))
 
         return logits, loss
 
