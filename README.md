@@ -72,10 +72,6 @@ The training script will:
 >   - I shared the trained checkpoint in `checkpoints/checkpoint.pt` for you to generate poems without training.
 
 
-<img src="images/loss_curve.png" alt="Training Loss Curve" width="700">
-
-Validation loss bottoms out around step 6,000–6,500 while training loss continues to decrease, indicating mild overfitting in later steps.
-
 ### Evaluation
 
 Evaluate a checkpoint across four dimensions: test-set perplexity, structural validity, rhyme consistency, and qualitative spot-checks.
