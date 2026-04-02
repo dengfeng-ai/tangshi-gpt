@@ -1,4 +1,5 @@
 from datetime import datetime
+import json
 import os
 import torch
 
@@ -60,27 +61,31 @@ def estimate_loss(val_data, train_data):
 
 
 # ============ Training Loops =============
-def train(model: GPT, train_data, val_data):
+def train(model: GPT, train_data, val_data, metrics_path: str):
     # Create an optimizer
     optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
-    for iter in range(max_iters):
-        # Evaluate the loss on train and val sets
-        if iter % eval_interval == 0:
-            train_loss, val_loss = estimate_loss(val_data, train_data)
-            print(f"step {iter}: train loss {train_loss:.4f}, val loss {val_loss:.4f}")
+    with open(metrics_path, "w", encoding="utf-8") as metrics_file:
+        for iter in range(max_iters):
+            # Evaluate the loss on train and val sets
+            if iter % eval_interval == 0:
+                train_loss, val_loss = estimate_loss(val_data, train_data)
+                print(f"step {iter}: train loss {train_loss:.4f}, val loss {val_loss:.4f}")
+                metrics_file.write(json.dumps({"step": iter, "train_loss": train_loss, "val_loss": val_loss}) + "\n")
+                metrics_file.flush()
 
-        # Get batch data and calculate the loss
-        x, y = sample_batch(train_data)
-        _, loss = model(x, y)
+            # Get batch data and calculate the loss
+            x, y = sample_batch(train_data)
+            _, loss = model(x, y)
 
-        # Optimize the model
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+            # Optimize the model
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
 
-    train_loss, val_loss = estimate_loss(val_data, train_data)
-    print(f"step {iter}: train loss {train_loss:.4f}, val loss {val_loss:.4f}\n")
+        train_loss, val_loss = estimate_loss(val_data, train_data)
+        print(f"step {iter}: train loss {train_loss:.4f}, val loss {val_loss:.4f}\n")
+        metrics_file.write(json.dumps({"step": iter, "train_loss": train_loss, "val_loss": val_loss}) + "\n")
 
 
 # ============ Save checkpoint =============
@@ -144,7 +149,11 @@ if __name__ == "__main__":
     print(f"Model parameters: {trainable_params:,}")
 
     # Train the model
-    train(model, train_data, val_data)
+    os.makedirs("metrics", exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    metrics_path = f"metrics/train_metrics_{timestamp}.jsonl"
+    train(model, train_data, val_data, metrics_path)
+    print(f"Metrics saved to {metrics_path}")
 
     # Save checkpoint
     save_checkpoint(model, tokenizer)
