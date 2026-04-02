@@ -28,13 +28,16 @@ eval_interval = 500
 def encode_poems(poems: list, tokenizer: CharTokenizer) -> torch.Tensor:
     """Encode each poem into token ids, left-aligned with right padding.
 
-    Returns a tensor of shape (num_poems, max_len) where max_len is the
-    length of the longest poem in the set.
+    Returns a tensor of shape (num_poems, context_size) where each poem
+    is padded to context_size.
     """
     pad_id = tokenizer.char_to_id["<pad>"]
     encoded = [tokenizer.encode(poem.train_text()) for poem in poems]
     max_len = max(len(ids) for ids in encoded)
-    padded = [ids + [pad_id] * (max_len - len(ids)) for ids in encoded]
+    assert max_len <= context_size, (
+        f"Longest poem ({max_len} tokens) exceeds context_size ({context_size})"
+    )
+    padded = [ids + [pad_id] * (context_size - len(ids)) for ids in encoded]
     return torch.tensor(padded, dtype=torch.long)
 
 
