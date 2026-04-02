@@ -25,20 +25,34 @@ eval_interval = 500
 
 
 # ============ Data loading =============
-def encode_poems(poems: list, tokenizer: CharTokenizer) -> torch.Tensor:
-    """Encode each poem into token ids, left-aligned with right padding.
+def pack_poems(poems: list, tokenizer: CharTokenizer) -> torch.Tensor:
+    """Pack multiple poems into fixed-length sequences.
 
-    Returns a tensor of shape (num_poems, context_size) where each poem
-    is padded to context_size.
+    Poems are concatenated into sequences of context_size tokens. When
+    the next poem doesn't fit, the remaining space is padded and a new
+    sequence is started. Returns a tensor of shape (num_seqs, context_size).
     """
     pad_id = tokenizer.char_to_id["<pad>"]
     encoded = [tokenizer.encode(poem.train_text()) for poem in poems]
-    max_len = max(len(ids) for ids in encoded)
-    assert max_len <= context_size, (
-        f"Longest poem ({max_len} tokens) exceeds context_size ({context_size})"
+    assert all(len(ids) <= context_size for ids in encoded), (
+        "Some poems exceed context_size"
     )
-    padded = [ids + [pad_id] * (context_size - len(ids)) for ids in encoded]
-    return torch.tensor(padded, dtype=torch.long)
+
+    sequences = []
+    current_seq = []
+
+    for ids in encoded:
+        if len(current_seq) + len(ids) > context_size:
+            current_seq.extend([pad_id] * (context_size - len(current_seq)))
+            sequences.append(current_seq)
+            current_seq = []
+        current_seq.extend(ids)
+
+    if current_seq:
+        current_seq.extend([pad_id] * (context_size - len(current_seq)))
+        sequences.append(current_seq)
+
+    return torch.tensor(sequences, dtype=torch.long)
 
 
 def sample_batch(data: torch.Tensor):
@@ -137,9 +151,9 @@ if __name__ == "__main__":
     tokenizer = CharTokenizer()
     tokenizer.build_vocab(full_text)
 
-    # Encode poems into padded tensors (one poem per row)
-    train_data = encode_poems(train_poems, tokenizer)
-    val_data = encode_poems(val_poems, tokenizer)
+    # Pack poems into fixed-length sequences (multiple poems per row)
+    train_data = pack_poems(train_poems, tokenizer)
+    val_data = pack_poems(val_poems, tokenizer)
     print(f"Train tensor: {train_data.shape}, Val tensor: {val_data.shape}")
 
     # Create the model
