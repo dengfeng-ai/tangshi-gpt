@@ -71,17 +71,6 @@ The training script will:
 >   - If you want to train, you can adjust the hyperparameters in `train.py` (e.g., `max_iters`, `batch_size`, `learning_rate`) to fit your resources and needs.
 >   - I shared the trained checkpoint in `checkpoints/checkpoint.pt` for you to generate poems without training.
 
-#### Training Loss
-
-| Step | Train Loss | Val Loss |
-|------|-----------|----------|
-| 0 | 9.00 | 9.00 |
-| 2,000 | 4.27 | 4.49 |
-| 4,000 | 3.72 | 4.19 |
-| 6,000 | 3.40 | 4.11 |
-| 6,500 | 3.34 | **4.11** |
-| 8,000 | 3.17 | 4.11 |
-| 9,999 | 2.99 | 4.15 |
 
 <img src="images/loss_curve.png" alt="Training Loss Curve" width="700">
 
