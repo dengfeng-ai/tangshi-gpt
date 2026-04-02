@@ -113,12 +113,12 @@ Evaluation of the shared checkpoint (`checkpoints/checkpoint.pt`) on 200 generat
 
 | Metric | Score |
 |---|---|
-| Test set perplexity | 63.27 |
-| Structural validity | 96.0% |
-| Rhyme consistency | 39.1% |
-| Distinct-2 | 0.789 |
+| Test set perplexity | 48.07 |
+| Structural validity | 96.5% |
+| Rhyme consistency | 53.4% |
+| Distinct-2 | 0.8012 |
 
-The model reliably produces well-formed Tang poetry structures (96% valid). Rhyme consistency — the hardest aspect for a character-level model to learn implicitly — is an area for further improvement.
+The model reliably produces well-formed Tang poetry structures. Rhyme consistency — the hardest aspect for a character-level model to learn implicitly — is an area for further improvement.
 
 ### Generating Poems
 
