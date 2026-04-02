@@ -45,8 +45,7 @@ def compute_perplexity(
     """Compute perplexity on the test set by iterating over all poems."""
     pad_id = tokenizer.char_to_id["<pad>"]
     encoded = [tokenizer.encode(poem.train_text()) for poem in test_poems]
-    max_len = max(len(ids) for ids in encoded)
-    padded = [ids + [pad_id] * (max_len - len(ids)) for ids in encoded]
+    padded = [ids + [pad_id] * (context_size - len(ids)) for ids in encoded]
     data = torch.tensor(padded, dtype=torch.long)
 
     total_loss = 0.0
