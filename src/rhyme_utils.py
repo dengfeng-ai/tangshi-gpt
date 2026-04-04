@@ -1,99 +1,65 @@
 """Rhyme checking utilities for Tang poetry evaluation.
 
-Uses pypinyin to extract finals (韵母) and check rhyme consistency.
-Gracefully degrades if pypinyin is not installed.
+Uses the Pingshui rhyme table (平水韵) to check rhyme consistency.
+Falls back to pypinyin (modern Mandarin) if the rhyme table is not available.
 """
 
-try:
-    from pypinyin import pinyin, Style
+import json
+import os
 
-    HAS_PYPINYIN = True
-except ImportError:
-    HAS_PYPINYIN = False
+# Load Pingshui rhyme table: char -> rhyme group name
+_PINGSHUI_PATH = os.path.join(
+    os.path.dirname(__file__), "..", "data", "pingshui_rhyme.json"
+)
 
-# Equivalence groups: map specific finals to a canonical form so that
-# characters with traditionally compatible rhymes are grouped together.
-_FINAL_EQUIVALENCES = {
-    # -an group
-    "ian": "an",
-    "uan": "an",
-    "üan": "an",
-    # -ang group
-    "iang": "ang",
-    "uang": "ang",
-    # -en group
-    "in": "en",
-    "un": "en",
-    "ün": "en",
-    # -eng group
-    "ing": "eng",
-    "ong": "eng",
-    "iong": "eng",
-    # -ao group
-    "iao": "ao",
-    # -ou group
-    "iu": "ou",
-    "iou": "ou",
-    # -e group
-    "uo": "e",
-    "üe": "e",
-    "ue": "e",
-    # -ai group
-    "uai": "ai",
-    # -ei group
-    "ui": "ei",
-    "uei": "ei",
-}
+_CHAR_TO_RHYME: dict[str, str] = {}
+if os.path.exists(_PINGSHUI_PATH):
+    with open(_PINGSHUI_PATH, encoding="utf-8") as f:
+        _CHAR_TO_RHYME = json.load(f)
+
+HAS_PINGSHUI = bool(_CHAR_TO_RHYME)
 
 
-def get_normalized_final(char: str) -> str | None:
-    """Get the normalized rhyme final for a single Chinese character."""
-    if not HAS_PYPINYIN:
-        return None
-
-    result = pinyin(char, style=Style.FINALS, heteronym=False)
-    if not result or not result[0] or not result[0][0]:
-        return None
-
-    final = result[0][0]
-    return _FINAL_EQUIVALENCES.get(final, final)
+def get_rhyme_group(char: str) -> str | None:
+    """Get the Pingshui rhyme group for a single Chinese character."""
+    return _CHAR_TO_RHYME.get(char)
 
 
 def check_rhyme_consistency(rhyme_chars: list[str]) -> dict:
-    """Check whether a list of rhyme characters share the same final.
+    """Check whether a list of rhyme characters share the same Pingshui rhyme group.
 
     Returns a dict with keys:
-        available: bool - whether pypinyin is available
-        consistent: bool - whether all rhyme chars share the same final
-        finals: list[str|None] - normalized final for each character
+        available: bool - whether the rhyme table is available
+        consistent: bool - whether all rhyme chars share the same rhyme group
+        rhyme_groups: list[str|None] - rhyme group for each character
         rhyme_chars: list[str] - the input characters
     """
-    if not HAS_PYPINYIN:
+    if not HAS_PINGSHUI:
         return {"available": False}
 
     if len(rhyme_chars) < 2:
         return {
             "available": True,
             "consistent": True,
-            "finals": [get_normalized_final(c) for c in rhyme_chars],
+            "rhyme_groups": [get_rhyme_group(c) for c in rhyme_chars],
             "rhyme_chars": rhyme_chars,
         }
 
-    finals = [get_normalized_final(c) for c in rhyme_chars]
-    valid_finals = [f for f in finals if f is not None]
+    groups = [get_rhyme_group(c) for c in rhyme_chars]
+    valid_groups = [g for g in groups if g is not None]
 
-    if not valid_finals:
+    if not valid_groups:
         return {
             "available": True,
             "consistent": False,
-            "finals": finals,
+            "rhyme_groups": groups,
             "rhyme_chars": rhyme_chars,
         }
 
-    consistent = len(set(valid_finals)) == 1
+    consistent = len(set(valid_groups)) == 1
     return {
         "available": True,
         "consistent": consistent,
-        "finals": finals,
+        "rhyme_groups": groups,
         "rhyme_chars": rhyme_chars,
     }

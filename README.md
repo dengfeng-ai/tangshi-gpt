@@ -35,7 +35,7 @@ Tang dynasty poems (唐诗) sourced from the [chinese-poetry](https://github.com
 │   ├── train.py             # Training loop and checkpoint saving
 │   ├── generate.py          # CLI for generating poems from a checkpoint
 │   ├── evaluate.py          # Comprehensive evaluation script (perplexity, structure, rhyme, diversity)
-│   └── rhyme_utils.py       # Rhyme checking via pypinyin (optional dependency)
+│   └── rhyme_utils.py       # Rhyme checking via Pingshui rhyme table (平水韵)
 └── requirements.txt
 ```
 
@@ -115,11 +115,11 @@ Evaluation of the shared checkpoint (`checkpoints/checkpoint.pt`) on 200 generat
 | Metric | Generated | Test Reference |
 |---|---|---|
 | Perplexity | — | 48.07 |
-| Structural validity | 99.0% | — |
-| Rhyme consistency | 48.0% | 61.4% |
+| Structural validity | 99.5% | 99.3% |
+| Rhyme consistency | 63.6% | 87.3% |
 | Distinct-2 | 0.7902 | 0.8105 |
 
-The model reliably produces well-formed Tang poetry structures. Rhyme consistency is the hardest aspect for a character-level model to learn implicitly — the gap to the test set baseline (48.0% vs 61.4%) shows room for improvement. Note that rhyme is evaluated using modern Mandarin pinyin (pypinyin), which does not align with the historical Pingshui rhyme system (平水韵) used in Tang poetry — the true rhyme rates for both generated and reference poems are likely higher.
+Structural validity checks whether a poem follows the standard 绝句 (4-line) or 律诗 (8-line) form with consistent line lengths of 5 or 7 characters — poems that don't pass are not necessarily bad, they may simply be other forms (e.g. 词, 古体诗). Rhyme consistency is evaluated using the Pingshui rhyme table (平水韵), the historical rhyme system used in Tang poetry.
 
 ### Generating Poems
 
