@@ -270,6 +270,7 @@ def run_evaluation(
         print("  [skipped] pypinyin not installed.")
         print("  Install with: pip install pypinyin")
     else:
+        # Generated poems rhyme consistency
         valid_poems = [p for p, s in zip(generated_poems, structures) if s["valid"]]
         if not valid_poems:
             print("  No structurally valid poems to check.")
@@ -281,9 +282,21 @@ def run_evaluation(
                 if result.get("consistent"):
                     n_rhyming += 1
             print(
-                f"  Rhyme-consistent: {n_rhyming}/{len(valid_poems)} ({n_rhyming / len(valid_poems):.1%})"
+                f"  Generated: {n_rhyming}/{len(valid_poems)} ({n_rhyming / len(valid_poems):.1%})"
             )
-            print(f"  (among {len(valid_poems)} structurally valid poems)")
+
+        # Test set rhyme consistency as reference
+        test_valid = [p for p in test_poems if analyze_structure(p)["valid"]]
+        if test_valid:
+            n_test_rhyming = 0
+            for poem in test_valid:
+                rhyme_chars = extract_rhyme_chars(poem)
+                result = check_rhyme_consistency(rhyme_chars)
+                if result.get("consistent"):
+                    n_test_rhyming += 1
+            print(
+                f"  Test ref:  {n_test_rhyming}/{len(test_valid)} ({n_test_rhyming / len(test_valid):.1%})"
+            )
     print()
 
     # ── Generation Diversity ────────────────────────────────────

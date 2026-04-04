@@ -71,6 +71,22 @@ The training script will:
 >   - If you want to train, you can adjust the hyperparameters in `train.py` (e.g., `max_iters`, `batch_size`, `learning_rate`) to fit your resources and needs.
 >   - I shared the trained checkpoint in `checkpoints/checkpoint.pt` for you to generate poems without training.
 
+#### Results
+
+<img src="images/training_loss.png" alt="Training Loss Curve" width="600">
+
+| Step | Train Loss | Val Loss |
+|------|-----------|----------|
+| 0 | 9.0631 | 9.0637 |
+| 500 | 5.1546 | 5.1817 |
+| 1000 | 4.7492 | 4.8301 |
+| 2000 | 4.1941 | 4.3665 |
+| 4000 | 3.6388 | 3.9979 |
+| 6000 | 3.3552 | 3.8960 |
+| 8000 | 3.1760 | 3.8761 |
+| 9999 | 3.0349 | 3.8792 |
+
+Val loss plateaus around step 6000 (~3.87) while train loss continues to drop, indicating overfitting in the later stages of training. Potential mitigations include learning rate scheduling (warmup + cosine decay), early stopping, and increasing weight decay.
 
 ### Evaluation
 
@@ -96,14 +112,14 @@ python src/evaluate.py checkpoints/<checkpoint>.pt --num-samples 500 --temperatu
 
 Evaluation of the shared checkpoint (`checkpoints/checkpoint.pt`) on 200 generated poems:
 
-| Metric | Score |
-|---|---|
-| Test set perplexity | 48.07 |
-| Structural validity | 96.5% |
-| Rhyme consistency | 53.4% |
-| Distinct-2 | 0.8012 |
+| Metric | Generated | Test Reference |
+|---|---|---|
+| Perplexity | — | 48.07 |
+| Structural validity | 99.0% | — |
+| Rhyme consistency | 48.0% | 61.4% |
+| Distinct-2 | 0.7902 | 0.8105 |
 
-The model reliably produces well-formed Tang poetry structures. Rhyme consistency — the hardest aspect for a character-level model to learn implicitly — is an area for further improvement.
+The model reliably produces well-formed Tang poetry structures. Rhyme consistency is the hardest aspect for a character-level model to learn implicitly — the gap to the test set baseline (48.0% vs 61.4%) shows room for improvement. Note that rhyme is evaluated using modern Mandarin pinyin (pypinyin), which does not align with the historical Pingshui rhyme system (平水韵) used in Tang poetry — the true rhyme rates for both generated and reference poems are likely higher.
 
 ### Generating Poems
 
