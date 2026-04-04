@@ -3,7 +3,7 @@
 Evaluates across four dimensions:
   1. Test set perplexity
   2. Structural validity of generated poems
-  3. Rhyme consistency (optional, requires pypinyin)
+  3. Rhyme consistency (using Pingshui rhyme table 平水韵)
   4. Qualitative spot-check at multiple temperatures
 
 Usage:
@@ -25,10 +25,7 @@ from tokenizer import CharTokenizer
 from data_preparation import prepare_data
 from generate import load_checkpoint, generate_poem
 
-try:
-    from rhyme_utils import HAS_PYPINYIN, check_rhyme_consistency
-except ImportError:
-    HAS_PYPINYIN = False
+from rhyme_utils import HAS_PINGSHUI, check_rhyme_consistency
 
 
 # ============ Test Set Perplexity ============
@@ -81,16 +78,17 @@ def analyze_structure(poem: Poem) -> dict:
     if not content:
         return {"valid": False, "form": None}
 
-    # Flatten content and parse into 句 by splitting on ，and 。
+    # Flatten content and parse into 句 by splitting on punctuation
+    # Treat ？！ as equivalent to 。(sentence-ending punctuation)
     flat = content.replace("\n", "")
     phrases = []  # individual 句 texts
-    punctuation = []  # the delimiter after each 句
+    punctuation = []  # the delimiter after each 句 (normalized)
     current = []
     for ch in flat:
-        if ch in "，。":
+        if ch in "，。？！":
             if current:
                 phrases.append("".join(current))
-                punctuation.append(ch)
+                punctuation.append("，" if ch == "，" else "。")
                 current = []
         else:
             current.append(ch)
@@ -138,7 +136,7 @@ def extract_rhyme_chars(poem: Poem) -> list[str]:
     flat = poem.content.strip().replace("\n", "")
     rhyme_chars = []
     for i, ch in enumerate(flat):
-        if ch == "。" and i >= 1:
+        if ch in "。？！" and i >= 1:
             rhyme_chars.append(flat[i - 1])
     return rhyme_chars
 
@@ -251,12 +249,25 @@ def run_evaluation(
     total = len(structures)
     n_valid = sum(1 for s in structures if s["valid"])
 
-    print(f"  Fully valid: {n_valid}/{total} ({n_valid / total:.1%})")
+    print(f"  Generated: {n_valid}/{total} ({n_valid / total:.1%})")
+
+    # Test set structural validity as reference
+    test_structures = [analyze_structure(p) for p in test_poems]
+    n_test_valid = sum(1 for s in test_structures if s["valid"])
+    print(f"  Test ref:  {n_test_valid}/{len(test_poems)} ({n_test_valid / len(test_poems):.1%})")
+
+    # Print invalid poems
+    invalid_generated = [(p, s) for p, s in zip(generated_poems, structures) if not s["valid"]]
+    if invalid_generated:
+        print()
+        print(f"  Invalid generated poems ({len(invalid_generated)}):")
+        for poem, _ in invalid_generated:
+            print(f"    [{poem.title}] {poem.content.replace(chr(10), ' ')}")
 
     form_counts = Counter(s["form"] for s in structures if s["form"])
     if form_counts:
         print()
-        print("  Form distribution:")
+        print("  Form distribution (generated):")
         for form, count in form_counts.most_common():
             print(f"    {form}: {count} ({count / n_valid:.1%} of valid)")
     print()
@@ -266,9 +277,9 @@ def run_evaluation(
     print("Rhyme Consistency")
     print("=" * 60)
 
-    if not HAS_PYPINYIN:
-        print("  [skipped] pypinyin not installed.")
-        print("  Install with: pip install pypinyin")
+    if not HAS_PINGSHUI:
+        print("  [skipped] Pingshui rhyme table not found.")
+        print("  Expected at: data/pingshui_rhyme.json")
     else:
         # Generated poems rhyme consistency
         valid_poems = [p for p, s in zip(generated_poems, structures) if s["valid"]]
@@ -286,7 +297,7 @@ def run_evaluation(
             )
 
         # Test set rhyme consistency as reference
-        test_valid = [p for p in test_poems if analyze_structure(p)["valid"]]
+        test_valid = [p for p, s in zip(test_poems, test_structures) if s["valid"]]
         if test_valid:
             n_test_rhyming = 0
             for poem in test_valid:
@@ -336,7 +347,7 @@ def run_evaluation(
 
             # Rhyme info for valid poems
             rhyme_info = ""
-            if HAS_PYPINYIN and structure["valid"]:
+            if HAS_PINGSHUI and structure["valid"]:
                 rhyme_chars = extract_rhyme_chars(poem)
                 rhyme_result = check_rhyme_consistency(rhyme_chars)
                 if rhyme_result.get("available"):
