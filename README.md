@@ -61,9 +61,9 @@ python src/train.py
 ```
 
 The training script will:
-1. Load poems from pre-split train/val/test files
-2. Build a character-level vocabulary
-3. Train the GPT model for 10,000 iterations
+1. Load poems from pre-split train/val/test files (30,087 train / 3,346 val / 3,717 test)
+2. Build a character-level vocabulary (7,075 tokens: 5 special + 7,070 characters)
+3. Train the GPT model (~8.4M parameters) for 10,000 iterations
 4. Save a checkpoint to `checkpoints/`
 
 > **Note:** <br>
